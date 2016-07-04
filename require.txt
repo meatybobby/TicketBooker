@@ -1,0 +1,7 @@
+requests
+lxml
+Pillow
+opencv-python
+scipy
+sklearn
+numpy
