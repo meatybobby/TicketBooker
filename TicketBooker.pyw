@@ -2,8 +2,7 @@ import requests
 import lxml.html
 import random
 import datetime
-import PIL.Image
-import PIL.ImageTk
+import PIL.Image, PIL.ImageTk
 import urllib.parse
 import json
 import os
@@ -20,6 +19,7 @@ class TicketBooker(Frame):
 		self.cls = captcha.CaptchaDecoder()
 		self.bAuto = False
 		self.sAuto = False
+		self.nAuto = False
 		if not os.path.exists("record"):
 			os.mkdir("record")
 
@@ -97,14 +97,26 @@ class TicketBooker(Frame):
 		self.book.grid(row=4, column=2)
 		self.book["command"] = self.bookFromType
 		
+		self.trainNoText = Label(self)
+		self.trainNoText["text"] = "Train No.:"
+		self.trainNoText.grid(row=5, column=1)
+		self.trainNoField = Entry(self)
+		self.trainNoField["width"] = 10
+		self.trainNoField.grid(row=5, column=2, columnspan=1)
+		
+		self.bookNo = Button(self)
+		self.bookNo["text"] = "BookFromTrainNo"
+		self.bookNo.grid(row=5, column=3)
+		self.bookNo["command"] = self.bookFromNo
+		
 		self.save = Button(self)
 		self.save["text"] = "SaveInfo"
-		self.save.grid(row=5, column=2)
+		self.save.grid(row=6, column=2)
 		self.save["command"] = self.saveInfo
 		
 		self.load = Button(self)
 		self.load["text"] = "LoadInfo"
-		self.load.grid(row=5, column=3)
+		self.load.grid(row=6, column=3)
 		self.load["command"] = self.loadInfo
 		
 	def createOption(self):
@@ -117,11 +129,8 @@ class TicketBooker(Frame):
 		self.option.append('23:59')
 		self.typeOption=['*1','*2','*3','*4']
 		
-		now = datetime.datetime.now()
-
-		
 	def searchTicket(self):
-		if self.bAuto:
+		if self.bAuto or self.nAuto:
 			messagebox.showinfo('Error',"Another job is running")
 		elif self.sAuto:
 			self.sAuto = False
@@ -136,7 +145,7 @@ class TicketBooker(Frame):
 			self.actionTicket()
 		
 	def bookFromType(self):
-		if self.sAuto:
+		if self.sAuto or self.nAuto:
 			messagebox.showinfo('Error',"Another job is running")
 		elif self.bAuto:
 			self.bAuto = False
@@ -149,6 +158,21 @@ class TicketBooker(Frame):
 		else:
 			self.bookType = 'from'
 			self.actionTicket()
+			
+	def bookFromNo(self):
+		if self.sAuto or self.bAuto:
+			messagebox.showinfo('Error',"Another job is running")
+		elif self.nAuto:
+			self.nAuto = False
+			self.bookNo['text'] = 'BookFromTrainNo'
+		elif self.autoVar.get():
+			self.nAuto = True
+			self.bookNo['text'] = 'Stop book'
+			self.bookThread = threading.Thread(target=self.autoBookFromNo)
+			self.bookThread.start()
+		else:
+			self.bookType = 'no'
+			self.bookTicketNo()
 		
 	def saveInfo(self):
 		if os.path.exists("./info.sav"):
@@ -182,20 +206,21 @@ class TicketBooker(Frame):
 			messagebox.showinfo("Error", "Not find save file")
 			
 	def autoSearch(self):
-		self.setData()
 		url = "http://railway1.hinet.net/check_csearch.jsp"
 		url2 = "http://railway1.hinet.net/wait_order_search.jsp"
 		self.sess = requests.Session()
 		headers1 = {"Origin":"http://railway1.hinet.net","Referer":"http://railway1.hinet.net/csearch.htm"}
 		headers2 = {"Referer":url}
+		self.setData()
+		success = False
 		while self.sAuto:
+			print('Attempt search...')
 			num = random.random()
 			image_url = "http://railway1.hinet.net/ImageOut.jsp?pageRandom="+str(num)
 			self.sess.post(url,data=self.data,headers=headers1)
 			cookie = requests.utils.dict_from_cookiejar(self.sess.cookies)
 			image = self.sess.get(image_url,cookies=cookie,headers=headers2)
-			now = datetime.datetime.now()
-			imgPath = "IMG" + now.strftime('%Y%m%d%H%M%S') + ".jpg"
+			imgPath = "IMG" + self.produceTimeString() + ".jpg"
 			with open(imgPath,"wb") as f:
 				f.write(image.content)
 			self.data['randInput'] = self.cls.identify(imgPath)
@@ -205,12 +230,17 @@ class TicketBooker(Frame):
 			binary = res.content
 			document = lxml.html.document_fromstring(binary)
 			numTag = document.xpath('/html/body/table[2]/tr/td/a')
-			del self.data['randInput']
+			if self.data['randInput']: del self.data['randInput']
 			if numTag:
 				self.sAuto = False
 				self.search['text'] = 'Search'
-		self.referUrl = res.url
-		self.disPlaySearch(document)
+				success = True
+				print('Success!!')
+			else: print('Failed...')
+		
+		if success:
+			self.referUrl = res.url
+			self.disPlaySearch(document)
 		
 	def autoBookFromType(self):
 		url = "http://railway.hinet.net/check_ctkind1.jsp"
@@ -218,14 +248,16 @@ class TicketBooker(Frame):
 		self.sess = requests.Session()
 		headers1 = {"Origin":"http://railway.hinet.net","Referer":"http://railway.hinet.net/ctkind1.htm"}
 		headers2 = {"Referer":url}
+		self.setData()
+		success = False
 		while self.bAuto:
+			print('Attempt booking...')
 			num = random.random()
 			image_url = "http://railway.hinet.net/ImageOut.jsp?pageRandom="+str(num)
 			self.sess.post(url,data=self.data,headers=headers1)
 			cookie = requests.utils.dict_from_cookiejar(self.sess.cookies)
 			image = self.sess.get(image_url,cookies=cookie,headers=headers2)
-			now = datetime.datetime.now()
-			imgPath = "IMG" + now.strftime('%Y%m%d%H%M%S') + ".jpg"
+			imgPath = "IMG" + self.produceTimeString() + ".jpg"
 			with open(imgPath,"wb") as f:
 				f.write(image.content)
 			self.data['randInput'] = self.cls.identify(imgPath)
@@ -239,13 +271,71 @@ class TicketBooker(Frame):
 			if timeTag:
 				self.bAuto = False
 				self.book["text"] = "BookFromType"
-		codeTag = document.xpath('//*[@id="spanOrderCode"]')
-		now = datetime.datetime.now()
-		filePath = "record/success" + now.strftime('%Y%m%d%H%M%S') + ".html"
-		with open(filePath,"wb") as f:
-			f.write(res.content)
-		messagebox.showinfo("Success", "Success\nLeave time is\n"+timeTag[0].text
-			+"\nCode: "+codeTag[0].text)
+				success = True
+				print('Success!!')
+			else: print('Failed...')
+		
+		if success:
+			codeTag = document.xpath('//*[@id="spanOrderCode"]')
+			filePath = "record/success" + self.produceTimeString() + ".html"
+			with open(filePath,"wb") as f:
+				f.write(res.content)
+			messagebox.showinfo("Success", "Success\nLeave time is\n"+timeTag[0].text
+				+"\nCode: "+codeTag[0].text)
+	
+	def autoBookFromNo(self):
+		url = "http://railway.hinet.net/check_ctno1.jsp"
+		url2 = "http://railway.hinet.net/order_no1.jsp"
+		self.sess = requests.Session()
+		headers1 = {"Origin":"http://railway.hinet.net","Referer":"http://railway.hinet.net/ctno1.htm"}
+		headers2 = {"Referer":url}
+		
+		self.data = {"returnTicket":"0"}
+		self.data["person_id"] = self.pidField.get()
+		self.data["from_station"] = self.fromField.get()
+		self.data["to_station"] = self.toField.get()
+		self.data["getin_date"] = self.dateField.get()
+		self.data["train_no"] = self.trainNoField.get()
+		self.data["order_qty_str"] = self.numField.get()
+		self.data["n_order_qty_str"] = self.numField.get()
+		self.data["t_order_qty_str"] = '0'
+		self.data["d_order_qty_str"] = '0'
+		self.data["b_order_qty_str"] = '0'
+		self.data["z_order_qty_str"] = '0'
+		
+		success = False
+		while self.nAuto:
+			print('Attempt booking...')
+			num = random.random()
+			image_url = "http://railway.hinet.net/ImageOut.jsp?pageRandom="+str(num)
+			self.sess.post(url,data=self.data,headers=headers1)
+			cookie = requests.utils.dict_from_cookiejar(self.sess.cookies)
+			image = self.sess.get(image_url,cookies=cookie,headers=headers2)
+			imgPath = "IMG" + self.produceTimeString() + ".jpg"
+			with open(imgPath,"wb") as f:
+				f.write(image.content)
+			self.data['randInput'] = self.cls.identify(imgPath)
+			os.remove(imgPath)
+			cookie = requests.utils.dict_from_cookiejar(self.sess.cookies)
+			res = self.sess.get(url2,cookies=cookie, headers=headers2,params=self.data)
+			binary = res.content
+			document = lxml.html.document_fromstring(binary)
+			del self.data['randInput']
+			timeTag = document.xpath('/html/body/p[5]/span[2]')
+			if timeTag:
+				self.nAuto = False
+				self.bookNo["text"] = "BookFromTrainNo"
+				success = True
+				print('Success!!')
+			else: print('Failed...')
+			
+		if success:
+			codeTag = document.xpath('//*[@id="spanOrderCode"]')
+			filePath = "record/success" + self.produceTimeString() + ".html"
+			with open(filePath,"wb") as f:
+				f.write(res.content)
+			messagebox.showinfo("Success", "Success\nLeave time is\n"+timeTag[0].text
+				+"\nCode: "+codeTag[0].text)
 	
 	def actionTicket(self):
 		num = random.random()
@@ -263,11 +353,40 @@ class TicketBooker(Frame):
 		self.headers={"Referer":url}
 		cookie = requests.utils.dict_from_cookiejar(self.sess.cookies)
 		image = self.sess.get(image_url,cookies=cookie,headers=self.headers)
-		now = datetime.datetime.now()
-		imgPath = "IMG" + now.strftime('%Y%m%d%H%M%S') + ".jpg"
+		imgPath = "IMG" + self.produceTimeString() + ".jpg"
 		with open(imgPath,"wb") as f:
 			f.write(image.content)
 		self.createCaptchaWindow(imgPath)
+		
+	def bookTicketNo(self):
+		num = random.random()
+		url = "http://railway.hinet.net/check_ctno1.jsp"
+		self.headers = {"Origin":"http://railway.hinet.net","Referer":"http://railway.hinet.net/ctno1.htm"}
+		image_url = "http://railway.hinet.net/ImageOut.jsp?pageRandom="+str(num)
+		
+		self.data = {"returnTicket":"0"}
+		self.data["person_id"] = self.pidField.get()
+		self.data["from_station"] = self.fromField.get()
+		self.data["to_station"] = self.toField.get()
+		self.data["getin_date"] = self.dateField.get()
+		self.data["train_no"] = self.trainNoField.get()
+		self.data["order_qty_str"] = self.numField.get()
+		self.data["n_order_qty_str"] = self.numField.get()
+		self.data["t_order_qty_str"] = '0'
+		self.data["d_order_qty_str"] = '0'
+		self.data["b_order_qty_str"] = '0'
+		self.data["z_order_qty_str"] = '0'
+		
+		self.sess = requests.Session()
+		self.sess.post(url,data=self.data,headers=self.headers)
+		self.headers={"Referer":url}
+		cookie = requests.utils.dict_from_cookiejar(self.sess.cookies)
+		image = self.sess.get(image_url,cookies=cookie,headers=self.headers)
+		imgPath = "IMG" + self.produceTimeString() + ".jpg"
+		with open(imgPath,"wb") as f:
+			f.write(image.content)
+		self.createCaptchaWindow(imgPath)
+		
 
 	def setData(self):
 		self.data = {"returnTicket":"0"}
@@ -299,20 +418,37 @@ class TicketBooker(Frame):
 	def checkSearch(self):
 		if self.bookType == 'search':
 			url = "http://railway1.hinet.net/wait_order_search.jsp"
-		else:
+		elif self.bookType == 'from':
 			url = "http://railway.hinet.net/order_kind1.jsp"
+		else:
+			url = "http://railway.hinet.net/order_no1.jsp"
 		self.data['randInput']=self.captchaField.get()
 		cookie = requests.utils.dict_from_cookiejar(self.sess.cookies)
 		res = self.sess.get(url,cookies=cookie,
 			headers=self.headers,params=self.data)
+		self.captWin.destroy()
 		if self.bookType == 'search':
 			with open('result.html',"wb") as f:
 				f.write(res.content)
 			binary = res.content
 			document = lxml.html.document_fromstring(binary)
-			self.captWin.destroy()
 			self.referUrl = res.url;
 			self.disPlaySearch(document)
+		elif self.bookType == 'from':
+			with open('result.html',"wb") as f:
+				f.write(res.content)
+			binary = res.content
+			document = lxml.html.document_fromstring(binary)
+			timeTag = document.xpath('/html/body/p[5]/span[2]')
+			codeTag = document.xpath('//*[@id="spanOrderCode"]')
+			if not timeTag:
+				self.foundError(document)
+				return
+			filePath = "record/success" + self.produceTimeString() + ".html"
+			with open(filePath,"wb") as f:
+				f.write(res.content)
+			messagebox.showinfo("Success", "Success\nLeave time is\n"+timeTag[0].text
+				+"\nCode: "+codeTag[0].text)
 		else:
 			with open('result.html',"wb") as f:
 				f.write(res.content)
@@ -321,26 +457,9 @@ class TicketBooker(Frame):
 			timeTag = document.xpath('/html/body/p[5]/span[2]')
 			codeTag = document.xpath('//*[@id="spanOrderCode"]')
 			if not timeTag:
-				errorTag = document.xpath('/html/body/form/p[1]/strong')
-				if errorTag:
-					messagebox.showinfo("Error", "Captcha Error!")
-					return
-				errorTag = document.xpath('/html/body/p[1]/font/strong/span/strong')
-				if errorTag:
-					messagebox.showinfo("Error", "No ticket!")
-					return
-				errorTag = document.xpath('/html/frameset')
-				if errorTag:
-					messagebox.showinfo("Error", "Input error!")
-					return
-				errorTag = document.xpath('/html/body/font')
-				if errorTag:
-					messagebox.showinfo("Error","ID error!")
-					return
-				messagebox.showinfo("Error","QQ error")
+				self.foundError(document)
 				return
-			now = datetime.datetime.now()
-			filePath = "record/success" + now.strftime('%Y%m%d%H%M%S') + ".html"
+			filePath = "record/success" + self.produceTimeString() + ".html"
 			with open(filePath,"wb") as f:
 				f.write(res.content)
 			messagebox.showinfo("Success", "Success\nLeave time is\n"+timeTag[0].text
@@ -354,23 +473,7 @@ class TicketBooker(Frame):
 		eTimeTag = document.xpath('/html/body/table[2]/tr/td[6]')
 		otherTag = document.xpath('/html/body/table[2]/tr/td[7]')
 		if not numTag:
-			errorTag = document.xpath('/html/body/form/p[1]/strong')
-			if errorTag:
-				messagebox.showinfo("Error", "Captcha Error!")
-				return
-			errorTag = document.xpath('/html/body/p[1]/font/strong/span/strong')
-			if errorTag:
-				messagebox.showinfo("Error", "No ticket!")
-				return
-			errorTag = document.xpath('/html/frameset')
-			if errorTag:
-				messagebox.showinfo("Error", "Input error!")
-				return
-			errorTag = document.xpath('/html/body/font')
-			if errorTag:
-				messagebox.showinfo("Error","ID error!")
-				return
-			messagebox.showinfo("Error", "Input Error!")
+			self.foundError(document)
 			return
 		self.searchWin = Toplevel()
 		self.searchWin.title('Search result')
@@ -434,30 +537,42 @@ class TicketBooker(Frame):
 		timeTag = document.xpath('/html/body/p[5]/span[2]')
 		codeTag = document.xpath('//*[@id="spanOrderCode"]')
 		if not timeTag:
-			errorTag = document.xpath('/html/body/form/p[1]/strong')
-			if errorTag:
-				messagebox.showinfo("Error", "Captcha Error!")
-				return
-			errorTag = document.xpath('/html/body/p[1]/font/strong/span/strong')
-			if errorTag:
-				messagebox.showinfo("Error", "No ticket!")
-				return
-			errorTag = document.xpath('/html/frameset')
-			if errorTag:
-				messagebox.showinfo("Error", "Input error!")
-				return
-			errorTag = document.xpath('/html/body/font')
-			if errorTag:
-				messagebox.showinfo("Error","ID error!")
-				return
-			messagebox.showinfo("Error","QQ error")
+			self.foundError(document)
 			return
-		now = datetime.datetime.now()
-		filePath = "record/success" + now.strftime('%Y%m%d%H%M%S') + ".html"
+		filePath = "record/success" + self.produceTimeString() + ".html"
 		with open(filePath,"wb") as f:
 			f.write(res.content)
 		messagebox.showinfo("Success", "Success\nLeave time is\n"+timeTag[0].text
 			+"\nCode: "+codeTag[0].text)
+			
+	def foundError(self, document):
+		errorTag = document.xpath('/html/body/form/p[1]/strong')
+		if errorTag:
+			messagebox.showinfo("Error", "Captcha Error!")
+			return
+		errorTag = document.xpath('/html/body/p[1]/font/strong/span/strong')
+		if errorTag:
+			messagebox.showinfo("Error", "No ticket!")
+			return
+		errorTag = document.xpath('/html/frameset')
+		if errorTag:
+			messagebox.showinfo("Error", "Input error!")
+			return
+		errorTag = document.xpath('/html/body/font')
+		if errorTag:
+			messagebox.showinfo("Error","ID error!")
+			return
+		errorTag = document.xpath('/html/body/p/font/strong')
+		if errorTag:
+			messagebox.showinfo("Error","No ticket!")
+			return
+		messagebox.showinfo("Error","Input error")
+		return
+		
+	def produceTimeString(self):
+		now = datetime.datetime.now()
+		s = now.strftime('%Y%m%d%H%M%S') + str(now.microsecond)
+		return s
 
 if __name__ == '__main__':
 	root = Tk()
