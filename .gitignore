@@ -1,5 +1,7 @@
 __pycache__/*
 image/*
 record/*
+phantomjs-2.1.1-windows/*
 *.sav
 *.html
+*.log
