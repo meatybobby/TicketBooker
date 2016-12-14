@@ -149,7 +149,8 @@ class TicketBooker(Frame):
 			self.searchThread.start()
 		else:
 			self.bookType = 'search'
-			self.actionTicket()
+			driver = webdriver.PhantomJS()
+			self.actionTicket(driver)
 		
 	def bookFromType(self):
 		if self.sAuto or self.nAuto:
