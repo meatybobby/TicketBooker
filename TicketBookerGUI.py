@@ -37,28 +37,28 @@ class TicketBooker(Frame):
 		self.pidField = Entry(self)
 		self.pidField["width"] = 15
 		self.pidField.grid(row=0, column=1, columnspan=1)
-		
+
 		self.fromText = Label(self)
 		self.fromText["text"] = "From station:"
 		self.fromText.grid(row=1, column=0)
 		self.fromField = Entry(self)
 		self.fromField["width"] = 10
 		self.fromField.grid(row=1, column=1, columnspan=1)
-		
+
 		self.toText = Label(self)
 		self.toText["text"] = "To station:"
 		self.toText.grid(row=2, column=0)
 		self.toField = Entry(self)
 		self.toField["width"] = 10
 		self.toField.grid(row=2, column=1, columnspan=1)
-		
+
 		self.dateText = Label(self)
 		self.dateText["text"] = "Date(YYYY/MM/DD):"
 		self.dateText.grid(row=0, column=2)
 		self.dateField = Entry(self)
 		self.dateField["width"] = 15
 		self.dateField.grid(row=0, column=3, columnspan=1)
-		
+
 		self.sTimeText = Label(self)
 		self.sTimeText["text"] = "Start time:"
 		self.sTimeText.grid(row=1, column=2)
@@ -66,7 +66,7 @@ class TicketBooker(Frame):
 		self.sVar.set(self.option[9])
 		self.sTimeMenu = OptionMenu(self,self.sVar,*self.option)
 		self.sTimeMenu.grid(row=1, column=3, columnspan=1)
-		
+
 		self.eTimeText = Label(self)
 		self.eTimeText["text"] = "End time:"
 		self.eTimeText.grid(row=2, column=2)
@@ -74,7 +74,7 @@ class TicketBooker(Frame):
 		self.eVar.set(self.option[17])
 		self.eTimeMenu = OptionMenu(self,self.eVar,*self.option)
 		self.eTimeMenu.grid(row=2, column=3, columnspan=1)
-		
+
 		self.typeText = Label(self)
 		self.typeText["text"] = "Type:"
 		self.typeText.grid(row=3, column=0)
@@ -82,50 +82,50 @@ class TicketBooker(Frame):
 		self.tVar.set(self.typeOption[0])
 		self.typeMenu = OptionMenu(self,self.tVar,*self.typeOption)
 		self.typeMenu.grid(row=3, column=1, columnspan=1)
-		
+
 		self.numText = Label(self)
 		self.numText["text"] = "Number(1~6):"
 		self.numText.grid(row=3, column=2)
 		self.numField = Entry(self)
 		self.numField["width"] = 10
 		self.numField.grid(row=3, column=3, columnspan=1)
-		
+
 		self.autoVar = IntVar()
 		autoBox = Checkbutton(self, text='Auto', variable=self.autoVar)
 		autoBox.grid(row=4, column=0)
-		
+
 		self.search = Button(self)
 		self.search["text"] = "Search"
 		self.search.grid(row=4, column=1)
 		self.search["command"] = self.searchTicket
-		
+
 		self.book = Button(self)
 		self.book["text"] = "BookFromType"
 		self.book.grid(row=4, column=2)
 		self.book["command"] = self.bookFromType
-		
+
 		self.trainNoText = Label(self)
 		self.trainNoText["text"] = "Train No.:"
 		self.trainNoText.grid(row=5, column=1)
 		self.trainNoField = Entry(self)
 		self.trainNoField["width"] = 10
 		self.trainNoField.grid(row=5, column=2, columnspan=1)
-		
+
 		self.bookNo = Button(self)
 		self.bookNo["text"] = "BookFromTrainNo"
 		self.bookNo.grid(row=5, column=3)
 		self.bookNo["command"] = self.bookFromNo
-		
+
 		self.save = Button(self)
 		self.save["text"] = "SaveInfo"
 		self.save.grid(row=6, column=2)
 		self.save["command"] = self.saveInfo
-		
+
 		self.load = Button(self)
 		self.load["text"] = "LoadInfo"
 		self.load.grid(row=6, column=3)
 		self.load["command"] = self.loadInfo
-		
+
 	def createOption(self):
 		self.option=[]
 		for i in range(0,24,1):
@@ -135,7 +135,7 @@ class TicketBooker(Frame):
 				self.option.append(str(i)+':00')
 		self.option.append('23:59')
 		self.typeOption=['*1','*2','*3','*4']
-		
+
 	def searchTicket(self):
 		if self.bAuto or self.nAuto:
 			messagebox.showinfo('Error',"Another job is running")
@@ -151,7 +151,7 @@ class TicketBooker(Frame):
 			self.bookType = 'search'
 			driver = webdriver.PhantomJS()
 			self.actionTicket(driver)
-		
+
 	def bookFromType(self):
 		if self.sAuto or self.nAuto:
 			messagebox.showinfo('Error',"Another job is running")
@@ -170,7 +170,7 @@ class TicketBooker(Frame):
 			self.actionTicket(driver)
 			driver.save_screenshot('record.png')
 			driver.quit()
-			
+
 	def bookFromNo(self):
 		if self.sAuto or self.bAuto:
 			messagebox.showinfo('Error',"Another job is running")
@@ -188,7 +188,7 @@ class TicketBooker(Frame):
 			self.bookTicketNo(driver)
 			driver.save_screenshot('record.png')
 			#driver.quit()
-		
+
 	def saveInfo(self):
 		if os.path.exists("./info.sav"):
 			var = messagebox.askyesno("Warning","Save file exist, override it?")
@@ -198,7 +198,7 @@ class TicketBooker(Frame):
 			with open('info.sav','w') as f:
 				f.write(dataStr)
 			messagebox.showinfo("Success", "Save information!")
-		
+
 	def loadInfo(self):
 		if os.path.exists("./info.sav"):
 			with open('info.sav','r') as f:
@@ -219,7 +219,7 @@ class TicketBooker(Frame):
 			self.numField.insert(0,self.data["order_qty_str"])
 		else:
 			messagebox.showinfo("Error", "Not find save file")
-			
+
 	def autoSearch(self):
 		url = "http://railway1.hinet.net/check_csearch.jsp"
 		url2 = "http://railway1.hinet.net/wait_order_search.jsp"
@@ -252,11 +252,11 @@ class TicketBooker(Frame):
 				success = True
 				print('Success!!')
 			else: print('Failed...')
-		
+
 		if success:
 			self.referUrl = res.url
 			self.disPlaySearch(document)
-		
+
 	def autoBookFromType(self):
 		driver = webdriver.PhantomJS()
 		#driver = webdriver.Chrome()
@@ -271,16 +271,16 @@ class TicketBooker(Frame):
 				print('Success!!')
 			#else: print('Failed...')
 			driver.delete_all_cookies()
-		
+
 		if success:
 			codeTag = driver.find_elements_by_xpath('//*[@id="spanOrderCode"]')
 			filePath = "record/success" + self.produceTimeString() + ".jpg"
 			driver.save_screenshot(filePath)
 			messagebox.showinfo("Success", "Success\nLeave time is\n"+timeTag[0].text
 				+"\nCode: "+codeTag[0].text)
-				
+
 		driver.quit()
-	
+
 	def autoBookFromNo(self):
 		driver = webdriver.Chrome()
 		success = False
@@ -294,16 +294,16 @@ class TicketBooker(Frame):
 				print('Success!!')
 			else: print('Failed...')
 			driver.delete_all_cookies()
-			
+
 		if success:
 			codeTag = driver.find_elements_by_xpath('//*[@id="spanOrderCode"]')
 			filePath = "record/success" + self.produceTimeString() + ".jpg"
 			driver.save_screenshot(filePath)
 			messagebox.showinfo("Success", "Success\nLeave time is\n"+timeTag[0].text
 				+"\nCode: "+codeTag[0].text)
-				
+
 		driver.quit()
-	
+
 	def actionTicket(self,driver):
 		num = random.random()
 		if self.bookType == 'search':
@@ -353,7 +353,7 @@ class TicketBooker(Frame):
 			imgPath = "IMG" + self.produceTimeString() + ".png"
 		driver.save_screenshot(imgPath)
 		im = PIL.Image.open(imgPath)
-		im = im.crop((147,95,346,153))
+		im = im.crop((154,87,353,145))
 		#im = im.crop((190,91,388,148))
 		im.save(imgPath)
 		cataNum = self.cls.identify(imgPath)
@@ -362,7 +362,7 @@ class TicketBooker(Frame):
 		input.send_keys(cataNum)
 		submit_button = driver.find_element_by_xpath('//*[@id="sbutton"]')
 		submit_button.click()
-		
+
 	def bookTicketNo(self,driver):
 		driver.get('http://railway.hinet.net/ctno1.htm')
 		id_box = driver.find_element_by_name('person_id')
@@ -398,7 +398,7 @@ class TicketBooker(Frame):
 		input = driver.find_element_by_id('randInput')
 		input.send_keys(cataNum)
 		submit_button = driver.find_element_by_xpath('//*[@id="sbutton"]/img')
-		#submit_button.click()
+		submit_button.click()
 
 	def setData(self):
 		self.data = {"returnTicket":"0"}
@@ -410,7 +410,7 @@ class TicketBooker(Frame):
 		self.data["getin_start_dtime"] = self.sVar.get()
 		self.data["getin_end_dtime"] = self.eVar.get()
 		self.data["order_qty_str"] = self.numField.get()
-		
+
 	def createCaptchaWindow(self,imgpath):
 		self.captWin = Toplevel()
 		self.captWin.title('Input captcha')
@@ -426,7 +426,7 @@ class TicketBooker(Frame):
 		captchaButton["command"] = self.checkSearch
 		os.remove(imgpath)
 		self.captWin.mainloop()
-		
+
 	def checkSearch(self):
 		if self.bookType == 'search':
 			url = "http://railway1.hinet.net/wait_order_search.jsp"
@@ -476,8 +476,8 @@ class TicketBooker(Frame):
 				f.write(res.content)
 			messagebox.showinfo("Success", "Success\nLeave time is\n"+timeTag[0].text
 				+"\nCode: "+codeTag[0].text)
-		
-	
+
+
 	def disPlaySearch(self,document):
 		numTag = document.xpath('/html/body/table[2]/tr/td/a')
 		typeTag = document.xpath('/html/body/table[2]/tr/td[2]')
@@ -509,17 +509,17 @@ class TicketBooker(Frame):
 				other = Label(self.searchWin)
 				other["text"] = otherTag[i+1].text.strip()
 				other.grid(row=i+1,column=4)
-				
+
 		self.bVar = StringVar(self.searchWin)
 		self.bVar.set(numTag[0].text.strip())
 		bookMenu = OptionMenu(self.searchWin,self.bVar,*list(self.bookOption.keys()))
 		bookMenu.grid(row=len(numTag)+1, column=0)
-		
+
 		bookButton = Button(self.searchWin)
 		bookButton['text'] = 'Book'
 		bookButton['command'] = self.bookTicket
 		bookButton.grid(row=len(numTag)+1, column=1)
-		
+
 	def setSearchText(self,win):
 		numLabel = Label(win)
 		numLabel["text"] = "Train num"
@@ -536,7 +536,7 @@ class TicketBooker(Frame):
 		otherLabel = Label(win)
 		otherLabel["text"] = "Other"
 		otherLabel.grid(row=0,column=4)
-		
+
 	def bookTicket(self):
 		cookie = requests.utils.dict_from_cookiejar(self.sess.cookies)
 		self.headers={"Referer":self.referUrl}
@@ -556,7 +556,7 @@ class TicketBooker(Frame):
 			f.write(res.content)
 		messagebox.showinfo("Success", "Success\nLeave time is\n"+timeTag[0].text
 			+"\nCode: "+codeTag[0].text)
-			
+
 	def foundError(self, document):
 		errorTag = document.xpath('/html/body/form/p[1]/strong')
 		if errorTag:
@@ -580,7 +580,7 @@ class TicketBooker(Frame):
 			return
 		messagebox.showinfo("Error","Input error")
 		return
-		
+
 	def produceTimeString(self):
 		now = datetime.datetime.now()
 		s = now.strftime('%Y%m%d%H%M%S') + str(now.microsecond)
